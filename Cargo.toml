@@ -1,0 +1,16 @@
+[package]
+name = "rassay"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[features]
+default = ["burn/dataset", "burn/vision", "tch"]
+tch = ["burn/tch"]
+wgpu = ["burn/wgpu"]
+
+[dependencies]
+clap = { version = "4.4.6", features = ["derive"] }
+burn = { version = "0.12.1", features=["train"] }
+serde = { version = "1.0.196", features = ["std", "derive"] }

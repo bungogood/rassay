@@ -1,0 +1,23 @@
+# Editor
+.vscode/
+
+# Rust
+debug/
+target/
+
+# Project
+/data/
+/model/
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Misc
+.venv/
+.env
+.envrc
