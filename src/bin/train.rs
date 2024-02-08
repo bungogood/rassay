@@ -1,8 +1,22 @@
+use std::path::PathBuf;
+
 use clap::Parser;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
 pub struct Args {
+    /// Test Csv file
+    #[arg(short = 't', long = "test-csv", default_value = "data/test.csv")]
+    test_csv: PathBuf,
+
+    /// Train Csv file
+    #[arg(short = 'r', long = "train-csv", default_value = "data/train.csv")]
+    train_csv: PathBuf,
+
+    /// Model Path
+    #[arg(short = 'm', long = "model-path", default_value = "model/model")]
+    model_path: PathBuf,
+
     /// Verbose
     #[arg(short = 'v', long = "verbose", default_value = "false")]
     verbose: bool,
@@ -36,7 +50,7 @@ mod tch {
     pub fn run(args: &Args) {
         let device = get_device(args.cpu_only);
 
-        training::run::<Autodiff<LibTorch>>(device);
+        training::run::<Autodiff<LibTorch>>(device, &args.test_csv, &args.train_csv);
     }
 }
 

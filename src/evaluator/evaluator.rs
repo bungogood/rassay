@@ -1,5 +1,6 @@
 use crate::probabilities::Probabilities;
 use bkgm::{Dice, State};
+use burn::tensor::backend::Backend;
 use std::path::Path;
 
 pub trait PartialEvaluator<G: State>: Sized {
@@ -25,7 +26,7 @@ pub trait Evaluator<G: State>: PartialEvaluator<G> + Sized {
     fn eval(&self, pos: &G) -> Probabilities;
 }
 
-pub trait NNEvaluator<G: State>: Evaluator<G> + Sized {
+pub trait ONNEvaluator<B: Backend, G: State>: Evaluator<G> + Sized {
     const MODEL_PATH: &'static str;
     const NUM_INTPUTS: usize;
     const NUM_OUTPUTS: usize;
@@ -65,22 +66,22 @@ impl<G: State> Evaluator<G> for RandomEvaluator {
     #[allow(dead_code)]
     /// Returns random probabilities. Each call will return different values.
     fn eval(&self, _pos: &G) -> Probabilities {
-        let win_normal = fastrand::f32();
-        let win_gammon = fastrand::f32();
-        let win_bg = fastrand::f32();
-        let lose_normal = fastrand::f32();
-        let lose_gammon = fastrand::f32();
-        let lose_bg = fastrand::f32();
+        let win_n = fastrand::f32();
+        let win_g = fastrand::f32();
+        let win_b = fastrand::f32();
+        let lose_n = fastrand::f32();
+        let lose_g = fastrand::f32();
+        let lose_b = fastrand::f32();
 
         // Now we like to make sure that the different probabilities add up to 1
-        let sum = win_normal + win_gammon + win_bg + lose_normal + lose_gammon + lose_bg;
+        let sum = win_n + win_g + win_b + lose_n + lose_g + lose_b;
         Probabilities {
-            win_normal: win_normal / sum,
-            win_gammon: win_gammon / sum,
-            win_bg: win_bg / sum,
-            lose_normal: lose_normal / sum,
-            lose_gammon: lose_gammon / sum,
-            lose_bg: lose_bg / sum,
+            win_n: win_n / sum,
+            win_g: win_g / sum,
+            win_b: win_b / sum,
+            lose_n: lose_n / sum,
+            lose_g: lose_g / sum,
+            lose_b: lose_b / sum,
         }
     }
 }

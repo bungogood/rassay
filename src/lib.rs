@@ -1,7 +1,9 @@
 pub mod data;
+pub mod dataset;
 pub mod dicegen;
 pub mod duel;
 pub mod evaluator;
+pub mod inputs;
 pub mod model;
 pub mod probabilities;
 pub mod training;

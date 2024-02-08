@@ -1,5 +1,9 @@
-use crate::data::MNISTBatcher;
-use crate::model::Model;
+use std::path::Path;
+
+use crate::data::PositionBatcher;
+use crate::dataset::PositionDataset;
+#[allow(unused_imports)]
+use crate::model::{LargeModel, RassayModel};
 
 use burn::module::Module;
 use burn::optim::decay::WeightDecayConfig;
@@ -10,15 +14,12 @@ use burn::train::metric::{CpuMemory, CpuUse};
 use burn::train::{MetricEarlyStoppingStrategy, StoppingCondition};
 use burn::{
     config::Config,
-    data::{dataloader::DataLoaderBuilder, dataset::vision::MNISTDataset},
+    data::dataloader::DataLoaderBuilder,
     tensor::backend::AutodiffBackend,
-    train::{
-        metric::{AccuracyMetric, LossMetric},
-        LearnerBuilder,
-    },
+    train::{metric::LossMetric, LearnerBuilder},
 };
 
-static ARTIFACT_DIR: &str = "/tmp/rassay";
+static ARTIFACT_DIR: &str = "logs";
 
 #[derive(Config)]
 pub struct MnistTrainingConfig {
@@ -37,37 +38,40 @@ pub struct MnistTrainingConfig {
     pub optimizer: AdamConfig,
 }
 
-pub fn run<B: AutodiffBackend>(device: B::Device) {
+pub fn run<B: AutodiffBackend>(device: B::Device, test: impl AsRef<Path>, train: impl AsRef<Path>) {
     // Config
     let config_optimizer = AdamConfig::new().with_weight_decay(Some(WeightDecayConfig::new(5e-5)));
     let config = MnistTrainingConfig::new(config_optimizer);
     B::seed(config.seed);
 
     // Data
-    let batcher_train = MNISTBatcher::<B>::new(device.clone());
-    let batcher_valid = MNISTBatcher::<B::InnerBackend>::new(device.clone());
+    let batcher_train = PositionBatcher::<B>::new(device.clone());
+    let batcher_valid = PositionBatcher::<B::InnerBackend>::new(device.clone());
+
+    let train_data = PositionDataset::new(train).unwrap();
+    let test_data = PositionDataset::new(test).unwrap();
 
     let dataloader_train = DataLoaderBuilder::new(batcher_train)
         .batch_size(config.batch_size)
         .shuffle(config.seed)
         .num_workers(config.num_workers)
-        .build(MNISTDataset::train());
+        .build(train_data);
     let dataloader_test = DataLoaderBuilder::new(batcher_valid)
         .batch_size(config.batch_size)
         .shuffle(config.seed)
         .num_workers(config.num_workers)
-        .build(MNISTDataset::test());
+        .build(test_data);
 
     // Model
     let learner = LearnerBuilder::new(ARTIFACT_DIR)
-        .metric_train_numeric(AccuracyMetric::new())
-        .metric_valid_numeric(AccuracyMetric::new())
+        // .metric_train_numeric(AccuracyMetric::new())
+        // .metric_valid_numeric(AccuracyMetric::new())
+        .metric_train_numeric(LossMetric::new())
+        .metric_valid_numeric(LossMetric::new())
         .metric_train_numeric(CpuUse::new())
         .metric_valid_numeric(CpuUse::new())
         .metric_train_numeric(CpuMemory::new())
         .metric_valid_numeric(CpuMemory::new())
-        .metric_train_numeric(LossMetric::new())
-        .metric_valid_numeric(LossMetric::new())
         .with_file_checkpointer(CompactRecorder::new())
         .early_stopping(MetricEarlyStoppingStrategy::new::<LossMetric<B>>(
             Aggregate::Mean,
@@ -77,7 +81,7 @@ pub fn run<B: AutodiffBackend>(device: B::Device) {
         ))
         .devices(vec![device.clone()])
         .num_epochs(config.num_epochs)
-        .build(Model::new(&device), config.optimizer.init(), 1e-4);
+        .build(LargeModel::new(&device), config.optimizer.init(), 1e-5);
 
     let model_trained = learner.fit(dataloader_train, dataloader_test);
 
@@ -86,9 +90,6 @@ pub fn run<B: AutodiffBackend>(device: B::Device) {
         .unwrap();
 
     model_trained
-        .save_file(
-            format!("{ARTIFACT_DIR}/model"),
-            &NoStdTrainingRecorder::new(),
-        )
+        .save_file(format!("model/model"), &NoStdTrainingRecorder::new())
         .expect("Failed to save trained model");
 }

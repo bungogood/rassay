@@ -1,10 +1,14 @@
 #![allow(unused_imports)]
 use bkgm::{Backgammon, Hypergammon, State};
+use burn::backend::LibTorch;
+use burn::record::{NoStdTrainingRecorder, Recorder};
 use clap::Parser;
 use rassay::dicegen::FastrandDice;
 use rassay::duel::Duel;
-use rassay::evaluator::{PartialEvaluator, PubEval, RandomEvaluator};
+use rassay::evaluator::{self, NNEvaluator, PartialEvaluator, PubEval, RandomEvaluator};
+use rassay::model::{EquityModel, LargeModel, RassayModel};
 use rassay::probabilities::ResultCounter;
+use serde::de;
 use std::{
     io::{stdout, Write},
     path::PathBuf,
@@ -26,9 +30,15 @@ struct Args {
 }
 
 fn run(args: &Args) {
-    let evaluator1 = PubEval::<Backgammon>::new();
-    let evaluator2 = RandomEvaluator::new();
-    duel(evaluator1, evaluator2, args.matches);
+    let device = burn::backend::libtorch::LibTorchDevice::Cpu;
+    let model1 = RassayModel::<LibTorch>::init_with(device, &args.model1);
+    let model2 = LargeModel::<LibTorch>::init_with(device, &args.model2);
+
+    // let evaluator1 = PubEval::<Backgammon>::new();
+    let evaluator1 = NNEvaluator::new(device, model1);
+    let evaluator2 = NNEvaluator::new(device, model2);
+    // let evaluator2 = RandomEvaluator::new();
+    duel::<Backgammon>(evaluator1, evaluator2, args.matches);
 }
 
 fn duel<G: State>(
