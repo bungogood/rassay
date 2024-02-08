@@ -220,6 +220,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ed570934406eb16438a4e976b1b4500774099c13b8cb96eec99f620f05090ddf"
 
 [[package]]
+name = "bkgm"
+version = "0.3.0"
+dependencies = [
+ "base64",
+]
+
+[[package]]
 name = "block"
 version = "0.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1725,6 +1732,7 @@ dependencies = [
  "instant",
  "number_prefix",
  "portable-atomic",
+ "rayon",
  "unicode-width",
 ]
 
@@ -2507,8 +2515,13 @@ checksum = "9c8a99fddc9f0ba0a85884b8d14e3592853e787d581ca1816c91349b10e4eeab"
 name = "rassay"
 version = "0.1.0"
 dependencies = [
+ "bkgm",
  "burn",
  "clap",
+ "csv",
+ "fastrand",
+ "indicatif",
+ "rayon",
  "serde",
 ]
 

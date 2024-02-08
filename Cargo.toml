@@ -11,6 +11,11 @@ tch = ["burn/tch"]
 wgpu = ["burn/wgpu"]
 
 [dependencies]
+bkgm = { path = "../bkgm" }
+rayon = "1.8.0"
+csv = "1.2.2"
+fastrand = "2.0.0"
 clap = { version = "4.4.6", features = ["derive"] }
 burn = { version = "0.12.1", features=["train"] }
 serde = { version = "1.0.196", features = ["std", "derive"] }
+indicatif = { version = "0.17.7", features = ["rayon"] }
