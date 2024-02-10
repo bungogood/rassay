@@ -1,11 +1,7 @@
 use std::fmt;
 
 use bkgm::GameResult;
-use serde::{
-    de::{self, Visitor},
-    ser::SerializeStruct,
-    Deserialize, Deserializer, Serialize,
-};
+use serde::{ser::SerializeStruct, Serialize};
 
 /// Sum of all six fields will always be 1.0
 #[derive(PartialEq, Clone, Copy)]

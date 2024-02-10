@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use crate::data::PositionBatch;
+use crate::{data::PositionBatch, inputs::Inputs};
 use burn::{
     module::Module,
     nn::{
@@ -11,7 +11,7 @@ use burn::{
     tensor::{
         self,
         backend::{AutodiffBackend, Backend},
-        Tensor,
+        Data, Tensor,
     },
     train::{RegressionOutput, TrainOutput, TrainStep, ValidStep},
 };
@@ -35,6 +35,8 @@ impl<B: Backend> Default for RassayModel<B> {
 }
 
 impl<B: Backend> EquityModel<B> for RassayModel<B> {
+    const INPUT_SIZE: usize = 202;
+
     fn init_with(device: B::Device, model_path: &PathBuf) -> Self {
         let record = NoStdTrainingRecorder::new()
             .load(model_path.into(), &device)
@@ -51,6 +53,10 @@ impl<B: Backend> EquityModel<B> for RassayModel<B> {
         let x = self.activation.forward(x);
         let x = self.output.forward(x);
         tensor::activation::softmax(x, 1)
+    }
+
+    fn inputs(&self, position: &bkgm::Position) -> Data<f32, 1> {
+        Data::<f32, 1>::from(Inputs::from_position(position).to_vec().as_slice())
     }
 }
 

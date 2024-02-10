@@ -6,4 +6,5 @@ pub mod evaluator;
 pub mod inputs;
 pub mod model;
 pub mod probabilities;
+pub mod self_play;
 pub mod training;

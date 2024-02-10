@@ -1,90 +1,6 @@
-// use crate::data::PositionBatch;
-// use burn::{
-//     module::Module,
-//     nn::{
-//         self,
-//         loss::{MSELoss, Reduction::Mean},
-//     },
-//     tensor::{
-//         self,
-//         backend::{AutodiffBackend, Backend},
-//         Tensor,
-//     },
-//     train::{RegressionOutput, TrainOutput, TrainStep, ValidStep},
-// };
-
-// #[derive(Module, Debug)]
-// pub struct LargeModel<B: Backend> {
-//     fc1: nn::Linear<B>,
-//     fc2: nn::Linear<B>,
-//     fc3: nn::Linear<B>,
-//     fc4: nn::Linear<B>,
-//     output: nn::Linear<B>,
-//     activation: nn::ReLU,
-// }
-
-// impl<B: Backend> Default for LargeModel<B> {
-//     fn default() -> Self {
-//         let device = B::Device::default();
-//         Self::new(&device)
-//     }
-// }
-
-// impl<B: Backend> LargeModel<B> {
-//     pub fn new(device: &B::Device) -> Self {
-//         let fc1 = nn::LinearConfig::new(202, 1000)
-//             .with_bias(false)
-//             .init(device);
-//         let fc2 = nn::LinearConfig::new(1000, 1000)
-//             .with_bias(false)
-//             .init(device);
-//         let fc3 = nn::LinearConfig::new(1000, 1000)
-//             .with_bias(false)
-//             .init(device);
-//         let fc4 = nn::LinearConfig::new(1000, 1000)
-//             .with_bias(false)
-//             .init(device);
-//         let output = nn::LinearConfig::new(1000, 5).with_bias(false).init(device);
-
-//         Self {
-//             fc1,
-//             fc2,
-//             fc3,
-//             fc4,
-//             output,
-//             activation: nn::ReLU::new(),
-//         }
-//     }
-
-//     pub fn forward(&self, input: Tensor<B, 2>) -> Tensor<B, 2> {
-//         let x = self.fc1.forward(input);
-//         let x = self.activation.forward(x);
-//         let x = self.fc2.forward(x);
-//         let x = self.activation.forward(x);
-//         let x = self.fc3.forward(x);
-//         let x = self.activation.forward(x);
-//         let x = self.fc4.forward(x);
-//         let x = self.activation.forward(x);
-//         let x = self.output.forward(x);
-//         tensor::activation::softmax(x, 1)
-//     }
-
-//     pub fn forward_step(&self, item: PositionBatch<B>) -> RegressionOutput<B> {
-//         let targets = item.probs;
-//         let output = self.forward(item.positions);
-//         let loss = MSELoss::new().forward(output.clone(), targets.clone(), Mean);
-
-//         RegressionOutput {
-//             loss,
-//             output,
-//             targets,
-//         }
-//     }
-// }
-
 use std::path::PathBuf;
 
-use crate::data::PositionBatch;
+use crate::{data::PositionBatch, inputs::Inputs};
 use burn::{
     module::Module,
     nn::{
@@ -95,7 +11,7 @@ use burn::{
     tensor::{
         self,
         backend::{AutodiffBackend, Backend},
-        Tensor,
+        Data, Tensor,
     },
     train::{RegressionOutput, TrainOutput, TrainStep, ValidStep},
 };
@@ -120,6 +36,8 @@ impl<B: Backend> Default for LargeModel<B> {
 }
 
 impl<B: Backend> EquityModel<B> for LargeModel<B> {
+    const INPUT_SIZE: usize = 202;
+
     fn init_with(device: B::Device, model_path: &PathBuf) -> Self {
         let record = NoStdTrainingRecorder::new()
             .load(model_path.into(), &device)
@@ -138,6 +56,10 @@ impl<B: Backend> EquityModel<B> for LargeModel<B> {
         let x = self.activation.forward(x);
         let x = self.output.forward(x);
         tensor::activation::softmax(x, 1)
+    }
+
+    fn inputs(&self, position: &bkgm::Position) -> Data<f32, 1> {
+        Data::<f32, 1>::from(Inputs::from_position(position).to_vec().as_slice())
     }
 }
 

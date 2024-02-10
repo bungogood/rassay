@@ -5,7 +5,7 @@ use burn::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::{inputs::Inputs, probabilities::Probabilities};
+use crate::inputs::Inputs;
 
 fn serialize_position_id<S>(position: &Position, serializer: S) -> Result<S::Ok, S::Error>
 where

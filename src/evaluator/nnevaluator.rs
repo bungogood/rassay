@@ -27,6 +27,36 @@ impl<B: Backend, G: State, E: EquityModel<B>> PartialEvaluator<G> for NNEvaluato
         let probs = self.eval(position);
         probs.equity()
     }
+
+    fn best_position(&self, position: &G, dice: &bkgm::Dice) -> G {
+        let positions = position.possible_positions(dice);
+
+        let inputs = self.model.input_tensor(
+            &self.device,
+            positions.iter().map(|pos| pos.position()).collect(),
+        );
+
+        let output = self.model.forward(inputs);
+
+        let data: Data<f32, 2> = output.into_data().convert();
+
+        *positions
+            .iter()
+            .enumerate()
+            .map(|(i, pos)| {
+                let row = i * 5;
+                let win = data.value[row];
+                let win_g = data.value[row + 1];
+                let win_b = data.value[row + 2];
+                let lose_g = data.value[row + 3];
+                let lose_b = data.value[row + 4];
+                let equity = 2.0 * win - 1.0 + win_g - lose_g + win_b - lose_b;
+                (pos, equity)
+            })
+            .min_by(|a, b| a.1.partial_cmp(&b.1).unwrap())
+            .unwrap()
+            .0
+    }
 }
 
 impl<B: Backend, G: State, E: EquityModel<B>> Evaluator<G> for NNEvaluator<B, G, E> {
