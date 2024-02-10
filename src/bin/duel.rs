@@ -1,5 +1,6 @@
 #![allow(unused_imports)]
 use bkgm::{Backgammon, Hypergammon, State};
+use burn::backend::libtorch::LibTorchDevice;
 use burn::backend::LibTorch;
 use burn::record::{NoStdTrainingRecorder, Recorder};
 use clap::Parser;
@@ -29,16 +30,34 @@ struct Args {
     /// Matches
     #[arg(short = 'm', long = "matches", default_value = "10000")]
     matches: usize,
+
+    /// Use CPU only
+    #[arg(short = 'c', long = "cpu", default_value = "false")]
+    cpu_only: bool,
+}
+
+fn get_device(cup_only: bool) -> LibTorchDevice {
+    if cup_only {
+        LibTorchDevice::Cpu
+    } else {
+        #[cfg(not(target_os = "macos"))]
+        let device = LibTorchDevice::Cuda(0);
+        // MacOs Mps too slow
+        #[cfg(target_os = "macos")]
+        let device = LibTorchDevice::Cpu;
+        // let device = LibTorchDevice::Mps;
+        device
+    }
 }
 
 fn run(args: &Args) {
-    let device = burn::backend::libtorch::LibTorchDevice::Cpu;
+    let device = get_device(args.cpu_only);
     let model1 = LargeModel::<LibTorch>::init_with(device, &args.model1);
     let model2 = LargeModel::<LibTorch>::init_with(device, &args.model2);
 
     // let evaluator1 = PubEval::new();
-    let evaluator1 = HyperEvaluator::new().unwrap();
-    // let evaluator1 = NNEvaluator::new(device, model1);
+    // let evaluator1 = HyperEvaluator::new().unwrap();
+    let evaluator1 = NNEvaluator::new(device, model1);
     let evaluator2 = NNEvaluator::new(device, model2);
     // let evaluator2 = RandomEvaluator::new();
     duel::<Hypergammon>(evaluator1, evaluator2, args.matches / 2);

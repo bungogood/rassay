@@ -221,7 +221,9 @@ checksum = "ed570934406eb16438a4e976b1b4500774099c13b8cb96eec99f620f05090ddf"
 
 [[package]]
 name = "bkgm"
-version = "0.3.0"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fa4acd56571bffe52e8303735adc9d7610b7b00ce2bbd293b48d1c946d798444"
 dependencies = [
  "base64",
 ]
