@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::path::PathBuf;
 
 use crate::data::PositionBatcher;
 use crate::dataset::PositionDataset;
@@ -38,7 +38,12 @@ pub struct MnistTrainingConfig {
     pub optimizer: AdamConfig,
 }
 
-pub fn run<B: AutodiffBackend>(device: B::Device, test: impl AsRef<Path>, train: impl AsRef<Path>) {
+pub fn run<B: AutodiffBackend>(
+    device: B::Device,
+    model_path: &PathBuf,
+    test: &PathBuf,
+    train: &PathBuf,
+) {
     // Config
     let config_optimizer = AdamConfig::new().with_weight_decay(Some(WeightDecayConfig::new(5e-5)));
     let config = MnistTrainingConfig::new(config_optimizer);
@@ -90,6 +95,9 @@ pub fn run<B: AutodiffBackend>(device: B::Device, test: impl AsRef<Path>, train:
         .unwrap();
 
     model_trained
-        .save_file(format!("model/model"), &NoStdTrainingRecorder::new())
+        .save_file(
+            format!("{}", model_path.display()),
+            &NoStdTrainingRecorder::new(),
+        )
         .expect("Failed to save trained model");
 }

@@ -7,7 +7,8 @@ use clap::Parser;
 use rassay::dicegen::FastrandDice;
 use rassay::duel::Duel;
 use rassay::evaluator::{
-    self, HyperEvaluator, NNEvaluator, PartialEvaluator, PubEval, RandomEvaluator,
+    self, GreedyEvaluator, HyperEvaluator, NNEvaluator, PartialEvaluator, PlyEvaluator, PubEval,
+    RandomEvaluator,
 };
 use rassay::model::{EquityModel, LargeModel, RassayModel};
 use rassay::probabilities::ResultCounter;
@@ -52,15 +53,17 @@ fn get_device(cup_only: bool) -> LibTorchDevice {
 
 fn run(args: &Args) {
     let device = get_device(args.cpu_only);
-    let model1 = LargeModel::<LibTorch>::init_with(device, &args.model1);
-    let model2 = LargeModel::<LibTorch>::init_with(device, &args.model2);
+    let model1 = RassayModel::<LibTorch>::init_with(device, &args.model1);
+    let model2 = RassayModel::<LibTorch>::init_with(device, &args.model2);
 
     // let evaluator1 = PubEval::new();
     // let evaluator1 = HyperEvaluator::new().unwrap();
     let evaluator1 = NNEvaluator::new(device, model1);
+    // let evaluator1 = GreedyEvaluator::new(evaluator1, 0.4);
+    let evaluator1 = PlyEvaluator::new(evaluator1, 2);
     let evaluator2 = NNEvaluator::new(device, model2);
     // let evaluator2 = RandomEvaluator::new();
-    duel::<Hypergammon>(evaluator1, evaluator2, args.matches / 2);
+    duel::<Backgammon>(evaluator1, evaluator2, args.matches / 2);
 }
 
 fn duel<G: State>(

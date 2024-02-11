@@ -50,7 +50,12 @@ mod tch {
     pub fn run(args: &Args) {
         let device = get_device(args.cpu_only);
 
-        training::run::<Autodiff<LibTorch>>(device, &args.test_csv, &args.train_csv);
+        training::run::<Autodiff<LibTorch>>(
+            device,
+            &args.model_path,
+            &args.test_csv,
+            &args.train_csv,
+        );
     }
 }
 
