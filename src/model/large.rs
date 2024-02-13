@@ -61,6 +61,18 @@ impl<B: Backend> EquityModel<B> for LargeModel<B> {
     fn inputs(&self, position: &bkgm::Position) -> Data<f32, 1> {
         Data::<f32, 1>::from(Inputs::from_position(position).to_vec().as_slice())
     }
+
+    fn forward_step(&self, item: PositionBatch<B>) -> RegressionOutput<B> {
+        let targets = item.probs;
+        let output = self.forward(item.positions);
+        let loss = MSELoss::new().forward(output.clone(), targets.clone(), Mean);
+
+        RegressionOutput {
+            loss,
+            output,
+            targets,
+        }
+    }
 }
 
 impl<B: Backend> LargeModel<B> {
@@ -83,18 +95,6 @@ impl<B: Backend> LargeModel<B> {
             fc4: nn::LinearConfig::new(1000, 1000).init_with(record.fc4),
             output: nn::LinearConfig::new(1000, 5).init_with(record.output),
             activation: nn::ReLU::new(),
-        }
-    }
-
-    pub fn forward_step(&self, item: PositionBatch<B>) -> RegressionOutput<B> {
-        let targets = item.probs;
-        let output = self.forward(item.positions);
-        let loss = MSELoss::new().forward(output.clone(), targets.clone(), Mean);
-
-        RegressionOutput {
-            loss,
-            output,
-            targets,
         }
     }
 }

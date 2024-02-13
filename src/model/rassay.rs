@@ -58,6 +58,18 @@ impl<B: Backend> EquityModel<B> for RassayModel<B> {
     fn inputs(&self, position: &bkgm::Position) -> Data<f32, 1> {
         Data::<f32, 1>::from(Inputs::from_position(position).to_vec().as_slice())
     }
+
+    fn forward_step(&self, item: PositionBatch<B>) -> RegressionOutput<B> {
+        let targets = item.probs;
+        let output = self.forward(item.positions);
+        let loss = MSELoss::new().forward(output.clone(), targets.clone(), Mean);
+
+        RegressionOutput {
+            loss,
+            output,
+            targets,
+        }
+    }
 }
 
 impl<B: Backend> RassayModel<B> {
@@ -78,18 +90,6 @@ impl<B: Backend> RassayModel<B> {
             fc3: nn::LinearConfig::new(250, 200).init_with(record.fc3),
             output: nn::LinearConfig::new(200, 5).init_with(record.output),
             activation: nn::ReLU::new(),
-        }
-    }
-
-    pub fn forward_step(&self, item: PositionBatch<B>) -> RegressionOutput<B> {
-        let targets = item.probs;
-        let output = self.forward(item.positions);
-        let loss = MSELoss::new().forward(output.clone(), targets.clone(), Mean);
-
-        RegressionOutput {
-            loss,
-            output,
-            targets,
         }
     }
 }
