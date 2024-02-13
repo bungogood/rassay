@@ -5,7 +5,7 @@ use burn::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::inputs::Inputs;
+use crate::{inputs::Inputs, probabilities::Probabilities};
 
 fn serialize_position_id<S>(position: &Position, serializer: S) -> Result<S::Ok, S::Error>
 where
@@ -40,6 +40,18 @@ pub struct OutcomeProb {
     pub win_b: f32,
     pub lose_g: f32,
     pub lose_b: f32,
+}
+
+impl From<Probabilities> for OutcomeProb {
+    fn from(probs: Probabilities) -> Self {
+        Self {
+            win: probs.win_n + probs.win_g + probs.win_b,
+            win_g: probs.win_g + probs.win_b,
+            win_b: probs.win_b,
+            lose_g: probs.lose_g + probs.lose_b,
+            lose_b: probs.lose_b,
+        }
+    }
 }
 
 impl OutcomeProb {
