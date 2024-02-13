@@ -17,7 +17,7 @@ use burn::{config::Config, data::dataloader::DataLoaderBuilder, tensor::backend:
 static ARTIFACT_DIR: &str = "logs";
 
 #[derive(Config)]
-pub struct MnistTrainingConfig {
+pub struct CSVTrainingConfig {
     #[config(default = 10)]
     pub num_epochs: usize,
 
@@ -48,7 +48,7 @@ pub fn run<B: AutodiffBackend>(
 ) {
     // Config
     let config_optimizer = AdamConfig::new().with_weight_decay(Some(WeightDecayConfig::new(5e-5)));
-    let config = MnistTrainingConfig::new(config_optimizer);
+    let config = CSVTrainingConfig::new(config_optimizer);
     B::seed(config.seed);
 
     // Data

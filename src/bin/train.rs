@@ -31,7 +31,7 @@ mod tch {
     use crate::Args;
     use burn::backend::libtorch::{LibTorch, LibTorchDevice};
     use burn::backend::Autodiff;
-    use rassay::training;
+    use rassay::training::visual;
 
     fn get_device(cup_only: bool) -> LibTorchDevice {
         if cup_only {
@@ -50,7 +50,7 @@ mod tch {
     pub fn run(args: &Args) {
         let device = get_device(args.cpu_only);
 
-        training::run::<Autodiff<LibTorch>>(
+        visual::run::<Autodiff<LibTorch>>(
             device,
             &args.model_path,
             &args.test_csv,

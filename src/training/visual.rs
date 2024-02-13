@@ -22,7 +22,7 @@ use burn::{
 static ARTIFACT_DIR: &str = "logs";
 
 #[derive(Config)]
-pub struct MnistTrainingConfig {
+pub struct BurnTrainingConfig {
     #[config(default = 10)]
     pub num_epochs: usize,
 
@@ -46,7 +46,7 @@ pub fn run<B: AutodiffBackend>(
 ) {
     // Config
     let config_optimizer = AdamConfig::new().with_weight_decay(Some(WeightDecayConfig::new(5e-5)));
-    let config = MnistTrainingConfig::new(config_optimizer);
+    let config = BurnTrainingConfig::new(config_optimizer);
     B::seed(config.seed);
 
     // Data
@@ -86,7 +86,7 @@ pub fn run<B: AutodiffBackend>(
         ))
         .devices(vec![device.clone()])
         .num_epochs(config.num_epochs)
-        .build(LargeModel::new(&device), config.optimizer.init(), 1e-5);
+        .build(RassayModel::new(&device), config.optimizer.init(), 1e-5);
 
     let model_trained = learner.fit(dataloader_train, dataloader_test);
 

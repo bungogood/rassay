@@ -5,18 +5,6 @@ use clap::Parser;
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
 pub struct Args {
-    /// Test Csv file
-    #[arg(short = 't', long = "test-csv", default_value = "data/test.csv")]
-    test_csv: PathBuf,
-
-    /// Train Csv file
-    #[arg(short = 'r', long = "train-csv", default_value = "data/train.csv")]
-    train_csv: PathBuf,
-
-    /// Model Path
-    #[arg(short = 'm', long = "model-path", default_value = "model/model")]
-    model_path: PathBuf,
-
     /// Load model
     #[arg(short = 'l', long = "load", default_value = "false")]
     load_model: bool,
@@ -33,9 +21,12 @@ pub struct Args {
 #[cfg(feature = "tch")]
 mod tch {
     use crate::Args;
+    use bkgm::{Backgammon, Hypergammon};
     use burn::backend::libtorch::{LibTorch, LibTorchDevice};
     use burn::backend::Autodiff;
-    use rassay::self_play;
+    use burn::optim::AdamConfig;
+    use rassay::model::RassayModel;
+    use rassay::training::self_play::SelfPlay;
 
     fn get_device(cup_only: bool) -> LibTorchDevice {
         if cup_only {
@@ -53,14 +44,12 @@ mod tch {
 
     pub fn run(args: &Args) {
         let device = get_device(args.cpu_only);
+        let model = RassayModel::<Autodiff<LibTorch>>::new(&device);
 
-        self_play::run::<Autodiff<LibTorch>>(
-            device,
-            args.load_model,
-            &args.model_path,
-            &args.test_csv,
-            &args.train_csv,
-        );
+        let sp: SelfPlay<Autodiff<LibTorch>, Hypergammon, RassayModel<Autodiff<LibTorch>>> =
+            SelfPlay::new(device.clone(), model.clone());
+
+        sp.learn(model)
     }
 }
 
