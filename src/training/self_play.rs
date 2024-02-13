@@ -13,7 +13,7 @@ use burn::{
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
 use crate::{
-    data::{OutcomeProb, PositionBatch, PositionBatcher, PositionItem},
+    data::{OutcomeProb, PositionBatcher, PositionItem},
     dicegen::{DiceGen, FastrandDice},
     evaluator::{Evaluator, GreedyEvaluator, NNEvaluator, RolloutEvaluator},
     model::EquityModel,
@@ -22,7 +22,7 @@ use crate::{
 
 #[derive(Config)]
 pub struct SelfPlayConfig {
-    #[config(default = 100000)]
+    #[config(default = 1000000)]
     pub num_games: usize,
 
     #[config(default = 1000)]
@@ -34,13 +34,11 @@ pub struct SelfPlayConfig {
     #[config(default = 0.1)]
     pub epsilon: f32,
 
-    #[config(default = 1e-5)]
+    #[config(default = 1e-4)]
     pub learning_rate: f64,
 
     #[config(default = 42)]
     pub seed: u64,
-
-    pub optimizer: AdamConfig,
 }
 
 pub struct SelfPlay<B: AutodiffBackend, G: State, M: EquityModel<B> + AutodiffModule<B>> {
@@ -89,21 +87,22 @@ impl<B: AutodiffBackend, G: State, M: EquityModel<B> + AutodiffModule<B>> SelfPl
         &self,
         model: M,
         optim: &mut O,
-        batch: PositionBatch<B>,
+        items: Vec<PositionItem>,
         lr: f64,
     ) -> M {
-        let reg = model.forward_step(batch);
-
-        // Gradients for the current backward pass
-        let grads = reg.loss.backward();
-        // Gradients linked to each parameter of the model.
-        let grads = GradientsParams::from_grads(grads, &model);
-        // Update the model using the optimizer.
-        optim.step(lr, model, grads)
+        let batcher = PositionBatcher::<B>::new(self.device.clone());
+        let batch = batcher.batch(items);
+        let mut model = model;
+        for epoch in 0..5 {
+            let reg = model.forward_step(batch.clone());
+            let grads = reg.loss.backward();
+            let grads = GradientsParams::from_grads(grads, &model);
+            model = optim.step(lr, model, grads);
+        }
+        model
     }
 
-    fn self_play(&self, model: &M, batch_size: usize, epsilon: f32) -> PositionBatch<B> {
-        let batcher = PositionBatcher::<B>::new(self.device.clone());
+    fn self_play(&self, model: &M, batch_size: usize, epsilon: f32) -> Vec<PositionItem> {
         let evaluator = NNEvaluator::new(self.device.clone(), model.clone());
         let greedy = GreedyEvaluator::new(evaluator, epsilon);
         let positions = self.find_positions(greedy, batch_size);
@@ -117,21 +116,22 @@ impl<B: AutodiffBackend, G: State, M: EquityModel<B> + AutodiffModule<B>> SelfPl
                 }
             })
             .collect();
-        batcher.batch(items)
+        items
     }
 
     pub fn learn(&self, model: M) {
-        let config_optimizer =
-            AdamConfig::new().with_weight_decay(Some(WeightDecayConfig::new(5e-5)));
-        let config = SelfPlayConfig::new(config_optimizer);
+        let mut optim = AdamConfig::new()
+            .with_weight_decay(Some(WeightDecayConfig::new(5e-5)))
+            .init();
+        // let mut optim = config.optimizer.init();
+        let config = SelfPlayConfig::new();
         let rounds = config.num_games / config.batch_size;
         let mut model = model;
-        let mut optim = config.optimizer.init();
-        let model_path = PathBuf::from("model/self");
+        let model_path = PathBuf::from("model/self-play");
         for round in 0..rounds {
             let data = self.self_play(&model, config.batch_size, config.epsilon);
             model = self.train(model, &mut optim, data, config.learning_rate);
-            println!("Round: {}", round);
+            println!("Positions: {}", round * config.batch_size);
             model
                 .clone()
                 .save_file(

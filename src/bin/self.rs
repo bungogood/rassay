@@ -5,9 +5,9 @@ use clap::Parser;
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
 pub struct Args {
-    /// Load model
-    #[arg(short = 'l', long = "load", default_value = "false")]
-    load_model: bool,
+    /// Model path
+    #[arg(short = 'm', long = "model")]
+    model_path: Option<PathBuf>,
 
     /// Verbose
     #[arg(short = 'v', long = "verbose", default_value = "false")]
@@ -24,8 +24,7 @@ mod tch {
     use bkgm::{Backgammon, Hypergammon};
     use burn::backend::libtorch::{LibTorch, LibTorchDevice};
     use burn::backend::Autodiff;
-    use burn::optim::AdamConfig;
-    use rassay::model::RassayModel;
+    use rassay::model::{self, EquityModel, RassayModel};
     use rassay::training::self_play::SelfPlay;
 
     fn get_device(cup_only: bool) -> LibTorchDevice {
@@ -44,7 +43,11 @@ mod tch {
 
     pub fn run(args: &Args) {
         let device = get_device(args.cpu_only);
-        let model = RassayModel::<Autodiff<LibTorch>>::new(&device);
+
+        let model = match &args.model_path {
+            Some(path) => RassayModel::<Autodiff<LibTorch>>::init_with(device, path),
+            None => RassayModel::<Autodiff<LibTorch>>::new(&device),
+        };
 
         let sp: SelfPlay<Autodiff<LibTorch>, Hypergammon, RassayModel<Autodiff<LibTorch>>> =
             SelfPlay::new(device.clone(), model.clone());
