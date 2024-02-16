@@ -6,12 +6,12 @@ debug/
 target/
 
 # Project
-/data/
-/model/
+/data
+/model
 
 # Logs
 *.log
-logs/
+logs
 
 # OS
 .DS_Store
