@@ -1,3 +1,1 @@
-pub mod self_play;
-pub mod supervised;
-pub mod visual;
+pub mod td_learning;

@@ -4,14 +4,14 @@ use bkgm::{dice::ALL_21, GameState::GameOver, State};
 
 use super::{Evaluator, PartialEvaluator};
 
-pub struct PlyEvaluator<G: State, E: Evaluator<G>> {
+pub struct PlyEvaluator<G: State, E: PartialEvaluator<G>> {
     phantom: PhantomData<G>,
     evaluator: E,
     depth: usize,
     top_k: Option<usize>,
 }
 
-impl<G: State, E: Evaluator<G>> PartialEvaluator<G> for PlyEvaluator<G, E> {
+impl<G: State, E: PartialEvaluator<G>> PartialEvaluator<G> for PlyEvaluator<G, E> {
     fn try_eval(&self, pos: &G) -> f32 {
         self.ply(pos, self.depth)
     }
@@ -47,7 +47,7 @@ impl<G: State, E: Evaluator<G>> PartialEvaluator<G> for PlyEvaluator<G, E> {
 //     }
 // }
 
-impl<G: State, E: Evaluator<G>> PlyEvaluator<G, E> {
+impl<G: State, E: PartialEvaluator<G>> PlyEvaluator<G, E> {
     pub fn new(evaluator: E, depth: usize) -> Self {
         assert!(depth > 0, "depth must be greater than 0");
         Self {

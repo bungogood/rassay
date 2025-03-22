@@ -1,19 +1,14 @@
 use std::path::PathBuf;
 
-use crate::{data::PositionBatch, inputs::Inputs};
+use crate::inputs::Inputs;
 use burn::{
-    module::Module,
-    nn::{
-        self,
-        loss::{MSELoss, Reduction::Mean},
-    },
+    nn,
     record::{NoStdTrainingRecorder, Recorder},
     tensor::{
         self,
         backend::{AutodiffBackend, Backend},
         Data, Tensor,
     },
-    train::{RegressionOutput, TrainOutput, TrainStep, ValidStep},
 };
 
 use super::EquityModel;
@@ -24,7 +19,6 @@ pub struct RassayModel<B: Backend> {
     fc2: nn::Linear<B>,
     fc3: nn::Linear<B>,
     output: nn::Linear<B>,
-    activation: nn::ReLU,
 }
 
 impl<B: Backend> Default for RassayModel<B> {
@@ -58,18 +52,6 @@ impl<B: Backend> EquityModel<B> for RassayModel<B> {
     fn inputs(&self, position: &bkgm::Position) -> Data<f32, 1> {
         Data::<f32, 1>::from(Inputs::from_position(position).to_vec().as_slice())
     }
-
-    fn forward_step(&self, item: PositionBatch<B>) -> RegressionOutput<B> {
-        let targets = item.probs;
-        let output = self.forward(item.positions);
-        let loss = MSELoss::new().forward(output.clone(), targets.clone(), Mean);
-
-        RegressionOutput {
-            loss,
-            output,
-            targets,
-        }
-    }
 }
 
 impl<B: Backend> RassayModel<B> {
@@ -91,19 +73,5 @@ impl<B: Backend> RassayModel<B> {
             output: nn::LinearConfig::new(200, 5).init_with(record.output),
             activation: nn::ReLU::new(),
         }
-    }
-}
-
-impl<B: AutodiffBackend> TrainStep<PositionBatch<B>, RegressionOutput<B>> for RassayModel<B> {
-    fn step(&self, item: PositionBatch<B>) -> TrainOutput<RegressionOutput<B>> {
-        let item = self.forward_step(item);
-
-        TrainOutput::new(self, item.loss.backward(), item)
-    }
-}
-
-impl<B: Backend> ValidStep<PositionBatch<B>, RegressionOutput<B>> for RassayModel<B> {
-    fn step(&self, item: PositionBatch<B>) -> RegressionOutput<B> {
-        self.forward_step(item)
     }
 }

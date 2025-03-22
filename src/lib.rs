@@ -1,5 +1,3 @@
-pub mod data;
-pub mod dataset;
 pub mod dicegen;
 pub mod duel;
 pub mod evaluator;

@@ -1,4 +1,5 @@
 use crate::evaluator::Evaluator;
+use crate::model::FState;
 use crate::probabilities::Probabilities;
 use bkgm::{utils::mcomb, Hypergammon, State};
 use std::fs::File;
@@ -23,6 +24,19 @@ impl PartialEvaluator<Hypergammon> for HyperEvaluator {
 
 impl Evaluator<Hypergammon> for HyperEvaluator {
     fn eval(&self, position: &Hypergammon) -> Probabilities {
+        self.probs[position.dbhash()]
+    }
+}
+
+impl PartialEvaluator<FState<Hypergammon>> for HyperEvaluator {
+    fn try_eval(&self, pos: &FState<Hypergammon>) -> f32 {
+        let probs = self.eval(pos);
+        probs.equity()
+    }
+}
+
+impl Evaluator<FState<Hypergammon>> for HyperEvaluator {
+    fn eval(&self, position: &FState<Hypergammon>) -> Probabilities {
         self.probs[position.dbhash()]
     }
 }

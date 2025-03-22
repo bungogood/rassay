@@ -1,7 +1,6 @@
 use std::fmt;
 
 use bkgm::GameResult;
-use serde::{ser::SerializeStruct, Serialize};
 
 /// Sum of all six fields will always be 1.0
 #[derive(PartialEq, Clone, Copy)]
@@ -12,21 +11,6 @@ pub struct Probabilities {
     pub lose_n: f32,
     pub lose_g: f32,
     pub lose_b: f32,
-}
-
-impl Serialize for Probabilities {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        let mut s = serializer.serialize_struct("Probabilities", 5)?;
-        s.serialize_field("win", &(self.win_n + self.win_g + self.win_b))?;
-        s.serialize_field("win_g", &(self.win_g + self.win_b))?;
-        s.serialize_field("win_b", &(self.win_b))?;
-        s.serialize_field("lose_g", &(self.lose_g + self.lose_b))?;
-        s.serialize_field("lose_b", &(self.lose_b))?;
-        s.end()
-    }
 }
 
 // impl<'de> Deserialize<'de> for Probabilities {

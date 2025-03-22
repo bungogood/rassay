@@ -1,4 +1,4 @@
-use bkgm::Dice;
+use bkgm::{dice::ALL_SINGLES, Dice};
 
 pub trait DiceGen: Clone {
     /// Returns dice
@@ -33,6 +33,10 @@ impl FastrandDice {
         FastrandDice {
             generator: fastrand::Rng::with_seed(seed),
         }
+    }
+
+    pub fn first_roll(&mut self) -> Dice {
+        ALL_SINGLES[self.generator.usize(0..15)]
     }
 }
 
