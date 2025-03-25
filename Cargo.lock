@@ -291,6 +291,7 @@ name = "bkgm"
 version = "0.3.1"
 dependencies = [
  "base64 0.21.7",
+ "fastrand",
 ]
 
 [[package]]

@@ -1,8 +1,7 @@
 use std::marker::PhantomData;
 
-use crate::dicegen::DiceGen;
-use crate::probabilities::ResultCounter;
-use crate::{dicegen::FastrandDice, probabilities::Probabilities};
+use crate::probabilities::{Probabilities, ResultCounter};
+use bkgm::dice_gen::{DiceGen, FastrandDice};
 use bkgm::position::GameState::{GameOver, Ongoing};
 use bkgm::{GameResult, State};
 

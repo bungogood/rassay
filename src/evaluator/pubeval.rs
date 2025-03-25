@@ -3,7 +3,7 @@ use std::marker::PhantomData;
 use bkgm::State;
 use bkgm::{
     position::GamePhase::{GameOver, Ongoing},
-    position::Phase::{Contact, Race},
+    position::OngoingPhase::{Contact, Race},
 };
 
 use super::PartialEvaluator;

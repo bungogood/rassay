@@ -73,7 +73,7 @@ impl<G: State, E: PartialEvaluator<G>> PlyEvaluator<G, E> {
                     best_value = value;
                 }
             }
-            result += prob * best_value;
+            result += (prob as f32) * best_value;
         }
         result / 36.0
     }

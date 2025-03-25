@@ -1,42 +1,28 @@
 use crate::evaluator::Evaluator;
-use crate::model::FState;
 use crate::probabilities::Probabilities;
-use bkgm::{utils::mcomb, Hypergammon, State};
+use bkgm::{utils::mcomb, State};
 use std::fs::File;
 use std::io::{BufReader, Read};
 use std::path::Path;
 
 use super::PartialEvaluator;
 
-const POSSIBLE: usize = mcomb(26, Hypergammon::NUM_CHECKERS as usize).pow(2);
+const POSSIBLE: usize = mcomb(26, 3 as usize).pow(2);
 
 #[derive(Clone)]
 pub struct HyperEvaluator {
     probs: Vec<Probabilities>,
 }
 
-impl PartialEvaluator<Hypergammon> for HyperEvaluator {
-    fn try_eval(&self, pos: &Hypergammon) -> f32 {
+impl<G: State> PartialEvaluator<G> for HyperEvaluator {
+    fn try_eval(&self, pos: &G) -> f32 {
         let probs = self.eval(pos);
         probs.equity()
     }
 }
 
-impl Evaluator<Hypergammon> for HyperEvaluator {
-    fn eval(&self, position: &Hypergammon) -> Probabilities {
-        self.probs[position.dbhash()]
-    }
-}
-
-impl PartialEvaluator<FState<Hypergammon>> for HyperEvaluator {
-    fn try_eval(&self, pos: &FState<Hypergammon>) -> f32 {
-        let probs = self.eval(pos);
-        probs.equity()
-    }
-}
-
-impl Evaluator<FState<Hypergammon>> for HyperEvaluator {
-    fn eval(&self, position: &FState<Hypergammon>) -> Probabilities {
+impl<G: State> Evaluator<G> for HyperEvaluator {
+    fn eval(&self, position: &G) -> Probabilities {
         self.probs[position.dbhash()]
     }
 }

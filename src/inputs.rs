@@ -1,4 +1,4 @@
-use bkgm::Position;
+use bkgm::{Position, State};
 use std::fmt;
 
 pub(crate) const NUM_INPUTS: usize = 202;
@@ -62,7 +62,7 @@ impl Inputs {
         string
     }
 
-    pub fn from_position(pos: &Position) -> Self {
+    pub fn from_position<G: State>(pos: &G) -> Self {
         let mut x_inputs = [NO_CHECKERS; 25];
         let mut o_inputs = [NO_CHECKERS; 25];
         // on the bar:

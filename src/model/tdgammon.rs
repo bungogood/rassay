@@ -55,9 +55,10 @@ impl<B: Backend> EquityModel<B> for TDModel<B> {
         sigmoid(x)
     }
 
-    fn inputs(&self, position: &bkgm::Position) -> Vec<f32> {
+    fn inputs<G: State>(&self, position: &G) -> Vec<f32> {
         // Data::<f32, 1>::from(Inputs::from_position(position).to_vec().as_slice())
         Inputs::from_position(position).to_vec()
+        // position_to_vec(position)
     }
 }
 
@@ -87,7 +88,7 @@ impl<B: Backend> TDModel<B> {
     }
 
     pub fn forward_pos<G: bkgm::State>(&self, position: G, device: &B::Device) -> f32 {
-        let inputs = self.input_tensor(device, vec![position.position()]);
+        let inputs = self.input_tensor(device, &vec![position]);
         let output = self.forward(inputs);
 
         let value: TensorData = output.into_data();
@@ -102,7 +103,7 @@ impl<B: AutodiffBackend> TDModel<B> {
         position: &G,
         device: &B::Device,
     ) -> (f32, GradientsParams) {
-        let inputs = self.input_tensor(device, vec![position.position()]);
+        let inputs = self.input_tensor(device, &vec![*position]);
         let output = self.forward(inputs);
 
         let grads = GradientsParams::from_grads(output.backward(), self);
@@ -113,108 +114,108 @@ impl<B: AutodiffBackend> TDModel<B> {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct FState<G: State> {
-    pub state: G,
-    pub turn: bool,
-}
+// #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+// pub struct FState<G: State> {
+//     pub state: G,
+//     pub turn: bool,
+// }
 
-impl<G: State> State for FState<G> {
-    const NUM_CHECKERS: u8 = G::NUM_CHECKERS;
+// impl<G: State> State for FState<G> {
+//     const NUM_CHECKERS: u8 = G::NUM_CHECKERS;
 
-    fn new() -> Self {
-        Self {
-            state: G::new(),
-            turn: true,
-        }
-    }
+//     fn new() -> Self {
+//         Self {
+//             state: G::new(),
+//             turn: true,
+//         }
+//     }
 
-    fn position(&self) -> position::Position {
-        self.state.position()
-    }
+//     fn position(&self) -> position::Position {
+//         self.state.position()
+//     }
 
-    fn flip(&self) -> Self {
-        Self {
-            state: self.state.flip(),
-            turn: !self.turn,
-        }
-    }
+//     fn flip(&self) -> Self {
+//         Self {
+//             state: self.state.flip(),
+//             turn: !self.turn,
+//         }
+//     }
 
-    fn game_state(&self) -> bkgm::GameState {
-        self.state.game_state()
-    }
+//     fn game_state(&self) -> bkgm::GameState {
+//         self.state.game_state()
+//     }
 
-    fn possible_positions(&self, dice: &bkgm::Dice) -> Vec<Self> {
-        self.state
-            .possible_positions(dice)
-            .iter()
-            .map(|pos| FState {
-                state: *pos,
-                turn: !self.turn,
-            })
-            .collect()
-    }
+//     fn possible_positions(&self, dice: &bkgm::Dice) -> Vec<Self> {
+//         self.state
+//             .possible_positions(dice)
+//             .iter()
+//             .map(|pos| FState {
+//                 state: *pos,
+//                 turn: !self.turn,
+//             })
+//             .collect()
+//     }
 
-    fn from_position(position: bkgm::Position) -> Self {
-        Self {
-            state: G::from_position(position),
-            turn: true,
-        }
-    }
+//     fn from_position(position: bkgm::Position) -> Self {
+//         Self {
+//             state: G::from_position(position),
+//             turn: true,
+//         }
+//     }
 
-    fn x_bar(&self) -> u8 {
-        self.state.x_bar()
-    }
+//     fn x_bar(&self) -> u8 {
+//         self.state.x_bar()
+//     }
 
-    fn o_bar(&self) -> u8 {
-        self.state.o_bar()
-    }
+//     fn o_bar(&self) -> u8 {
+//         self.state.o_bar()
+//     }
 
-    fn x_off(&self) -> u8 {
-        self.state.x_off()
-    }
+//     fn x_off(&self) -> u8 {
+//         self.state.x_off()
+//     }
 
-    fn o_off(&self) -> u8 {
-        self.state.o_off()
-    }
+//     fn o_off(&self) -> u8 {
+//         self.state.o_off()
+//     }
 
-    fn pip(&self, pip: usize) -> i8 {
-        self.state.pip(pip)
-    }
+//     fn pip(&self, pip: usize) -> i8 {
+//         self.state.pip(pip)
+//     }
 
-    fn board(&self) -> [i8; 24] {
-        self.state.board()
-    }
+//     fn board(&self) -> [i8; 24] {
+//         self.state.board()
+//     }
 
-    fn dbhash(&self) -> usize {
-        self.state.dbhash()
-    }
-}
+//     fn dbhash(&self) -> usize {
+//         self.state.dbhash()
+//     }
+// }
 
-impl<G: State> FState<G> {
-    pub fn f_game_state(&self) -> bkgm::GameState {
-        if self.turn {
-            self.state.game_state()
-        } else {
-            self.state.flip().game_state()
-        }
-    }
+// impl<G: State> FState<G> {
+//     pub fn f_game_state(&self) -> bkgm::GameState {
+//         if self.turn {
+//             self.state.game_state()
+//         } else {
+//             self.state.flip().game_state()
+//         }
+//     }
 
-    pub fn f_state(&self) -> G {
-        if self.turn {
-            self.state
-        } else {
-            self.state.flip()
-        }
-    }
-}
+//     pub fn f_state(&self) -> G {
+//         if self.turn {
+//             self.state
+//         } else {
+//             self.state.flip()
+//         }
+//     }
+// }
 
-impl<G: State, B: Backend> PartialEvaluator<FState<G>> for TDModel<B> {
-    fn try_eval(&self, pos: &FState<G>) -> f32 {
+impl<G: State, B: Backend> PartialEvaluator<G> for TDModel<B> {
+    fn try_eval(&self, pos: &G) -> f32 {
         let device = B::Device::default();
 
-        if pos.turn {
-            let inputs = self.input_tensor(&device, vec![pos.state.position()]);
+        if pos.turn() {
+            let inputs = self.input_tensor(&device, &vec![*pos]);
             let output = self.forward(inputs);
             let output = output.reshape([1]);
 
@@ -222,7 +223,7 @@ impl<G: State, B: Backend> PartialEvaluator<FState<G>> for TDModel<B> {
             let value: &[f32] = value.as_slice().unwrap();
             value[0]
         } else {
-            let inputs = self.input_tensor(&device, vec![pos.flip().state.position()]);
+            let inputs = self.input_tensor(&device, &vec![pos.flip()]);
             let output = self.forward(inputs);
             let output = output.reshape([1]);
 
@@ -232,14 +233,11 @@ impl<G: State, B: Backend> PartialEvaluator<FState<G>> for TDModel<B> {
         }
     }
 
-    fn best_position(&self, position: &FState<G>, dice: &bkgm::Dice) -> FState<G> {
+    fn best_position(&self, position: &G, dice: &bkgm::Dice) -> G {
         let positions = position.possible_positions(dice);
 
-        if position.turn {
-            let inputs = self.input_tensor(
-                &B::Device::default(),
-                positions.iter().map(|pos| pos.position()).collect(),
-            );
+        if position.turn() {
+            let inputs = self.input_tensor(&B::Device::default(), &positions);
 
             let output = self.forward(inputs);
 
@@ -256,7 +254,7 @@ impl<G: State, B: Backend> PartialEvaluator<FState<G>> for TDModel<B> {
         } else {
             let inputs = self.input_tensor(
                 &B::Device::default(),
-                positions.iter().map(|pos| pos.flip().position()).collect(),
+                &positions.iter().map(|pos| pos.flip()).collect(),
             );
 
             let output = self.forward(inputs);
@@ -272,5 +270,41 @@ impl<G: State, B: Backend> PartialEvaluator<FState<G>> for TDModel<B> {
                 .to_owned()
                 .0
         }
+    }
+}
+
+pub(crate) const NUM_INPUTS: usize = 202;
+
+pub fn position_to_vec<G: State>(pos: &G) -> Vec<f32> {
+    let mut vec = vec![0.0; NUM_INPUTS];
+
+    // Off-board checkers
+    vec[0] = pos.x_off() as f32;
+    vec[1] = pos.o_off() as f32;
+
+    // Bar checkers (index 2-5 for X, 6-9 for O)
+    encode_pip(&mut vec[2..6], pos.x_bar());
+    encode_pip(&mut vec[6..10], pos.o_bar());
+
+    // Board checkers
+    for i in 1..=24 {
+        let pip = pos.pip(i);
+        if pip > 0 {
+            encode_pip(&mut vec[(i * 4 + 6)..(i * 4 + 10)], pip as u8);
+        } else if pip < 0 {
+            encode_pip(&mut vec[(i * 4 + 6 + 96)..(i * 4 + 10 + 96)], -pip as u8);
+        }
+    }
+
+    vec
+}
+
+/// Encode a pip count into four values as per the TD-Gammon style representation.
+fn encode_pip(target: &mut [f32], pip: u8) {
+    match pip {
+        0 => target.copy_from_slice(&[0.0, 0.0, 0.0, 0.0]),
+        1 => target.copy_from_slice(&[1.0, 0.0, 0.0, 0.0]),
+        2 => target.copy_from_slice(&[0.0, 1.0, 0.0, 0.0]),
+        p => target.copy_from_slice(&[0.0, 0.0, 1.0, (p - 3) as f32]),
     }
 }

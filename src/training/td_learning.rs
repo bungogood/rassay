@@ -1,8 +1,9 @@
 use std::io::{stdout, Write};
 
 use bkgm::{
+    dice_gen::{DiceGen, FastrandDice},
     GameState::{GameOver, Ongoing},
-    Hypergammon, State,
+    State,
 };
 use burn::{
     module::Module,
@@ -12,10 +13,9 @@ use burn::{
 };
 
 use crate::{
-    dicegen::{DiceGen, FastrandDice},
     duel,
-    evaluator::{HyperEvaluator, PartialEvaluator, RandomEvaluator},
-    model::{FState, TDModel},
+    evaluator::{HyperEvaluator, PartialEvaluator, PubEval, RandomEvaluator},
+    model::TDModel,
 };
 
 pub struct TDConfig {
@@ -52,34 +52,30 @@ impl<B: AutodiffBackend> TDTrainer<B> {
         }
     }
 
-    fn get_grads_value<G: State>(
-        &self,
-        state: &FState<G>,
-        model: &TDModel<B>,
-    ) -> (f32, GradientsParams) {
-        let state = if state.turn { *state } else { state.flip() };
+    fn get_grads_value<G: State>(&self, state: &G, model: &TDModel<B>) -> (f32, GradientsParams) {
+        let state = if state.turn() { *state } else { state.flip() };
 
-        model.forward_grads_pos(&state.state, &self.device)
+        model.forward_grads_pos(&state, &self.device)
     }
 
-    fn get_value<G: State>(&self, state: &FState<G>, model: &TDModel<B>) -> f32 {
-        let state = if state.turn { *state } else { state.flip() };
+    fn get_value<G: State>(&self, state: &G, model: &TDModel<B>) -> f32 {
+        let state = if state.turn() { *state } else { state.flip() };
 
         match state.game_state() {
             GameOver(result) => model.from_result(result),
-            Ongoing => model.forward_pos(state.state, &self.device),
+            Ongoing => model.forward_pos(state, &self.device),
         }
     }
 
-    fn train_game<G: State>(&mut self, model: TDModel<B>) -> TDModel<B> {
+    fn train_game<G: State>(&mut self, state: &G, model: TDModel<B>) -> TDModel<B> {
         let mut optim = self.optim.init();
         let mut model = model;
 
         // let hyper = HyperEvaluator::new().unwrap();
 
         let mut dicegen = FastrandDice::new();
-        let mut dice = dicegen.first_roll();
-        let mut state = FState::<Hypergammon>::new();
+        let mut dice = dicegen.roll_mixed();
+        let mut state = state.clone();
 
         while state.game_state() == Ongoing {
             let (cur_value, grads) = self.get_grads_value(&state, &model);
@@ -96,12 +92,17 @@ impl<B: AutodiffBackend> TDTrainer<B> {
         model
     }
 
-    pub fn train<G: State>(&mut self, model: TDModel<B>, num_episodes: usize) -> TDModel<B> {
+    pub fn train<G: State>(
+        &mut self,
+        state: &G,
+        model: TDModel<B>,
+        num_episodes: usize,
+    ) -> TDModel<B> {
         // self.train_one(model.clone());
         let mut model = model;
         let mut prev_model = model.clone();
         for ep in 1..=num_episodes {
-            model = self.train_game::<G>(model.clone());
+            model = self.train_game(state, model.clone());
             if ep % 100 == 0 {
                 print!("\rEpisode: {}", ep);
                 stdout().flush().unwrap();
@@ -112,15 +113,16 @@ impl<B: AutodiffBackend> TDTrainer<B> {
                 model
                     .clone()
                     .save_file(
-                        format!("model/td/games-{}", ep),
+                        format!("model/bet/games-{}", ep),
                         &NoStdTrainingRecorder::new(),
                     )
                     .expect("Failed to save model");
             }
             if ep % 10_000 == 0 {
-                // let probs = duel::duel::<FState<Hypergammon>>(model.clone(), prev_model, 1000);
-                let probs =
-                    duel::duel::<FState<Hypergammon>>(model.clone(), RandomEvaluator::new(), 1000);
+                // let probs = duel::duel(state, model.clone(), HyperEvaluator::new().unwrap(), 1000);
+                let probs = duel::duel(state, model.clone(), PubEval::new(), 1000);
+                // let probs = duel::duel(state, model.clone(), RandomEvaluator::new(), 1000);
+                // let probs = duel::duel(state, model.clone(), prev_model, 1000);
                 println!(
                     "Equity: {:.3} ({:.1}%). {:?}",
                     probs.equity(),

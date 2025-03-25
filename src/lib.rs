@@ -1,4 +1,3 @@
-pub mod dicegen;
 pub mod duel;
 pub mod evaluator;
 pub mod inputs;
