@@ -21,13 +21,15 @@ use crate::{
 pub struct TDConfig {
     learning_rate: f64,
     td_decay: f64,
+    exploration: f64,
 }
 
 impl TDConfig {
-    pub fn new(learning_rate: f64, td_decay: f64) -> Self {
+    pub fn new(learning_rate: f64, td_decay: f64, exploration: f64) -> Self {
         Self {
             learning_rate,
             td_decay,
+            exploration,
         }
     }
 }
@@ -83,6 +85,13 @@ impl<B: AutodiffBackend> TDTrainer<B> {
             // let grads = GradientsParams::from_grads(cur_value.backward(), &model);
             state = model.best_position(&state, &dice);
 
+            if fastrand::f64() < self.config.exploration {
+                let positions = state.possible_positions(&dice);
+                state = positions[fastrand::usize(0..positions.len())];
+            } else {
+                state = model.best_position(&state, &dice);
+            }
+
             dice = dicegen.roll();
             let next_value = self.get_value(&state, &model);
             let td_error = next_value - cur_value;
@@ -97,6 +106,7 @@ impl<B: AutodiffBackend> TDTrainer<B> {
         state: &G,
         model: TDModel<B>,
         num_episodes: usize,
+        dir: String,
     ) -> TDModel<B> {
         // self.train_one(model.clone());
         let mut model = model;
@@ -113,7 +123,7 @@ impl<B: AutodiffBackend> TDTrainer<B> {
                 model
                     .clone()
                     .save_file(
-                        format!("model/bet/games-{}", ep),
+                        format!("{}/games-{}", dir, ep),
                         &NoStdTrainingRecorder::new(),
                     )
                     .expect("Failed to save model");
